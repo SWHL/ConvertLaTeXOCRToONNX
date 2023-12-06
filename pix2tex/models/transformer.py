@@ -41,9 +41,8 @@ class CustomARWrapper(AutoregressiveWrapper):
             x = out[:, -self.max_seq_len :]
             mask = mask[:, -self.max_seq_len :]
             # print('arw:',out.shape)
-            logits = self.net(x, mask=mask, **kwargs)
-
             context = kwargs["context"]
+            logits = self.net(x, mask=mask, context=context)
 
             root_dir = Path(__file__).resolve().parent.parent.parent
             save_dir = root_dir / "models"
@@ -53,16 +52,16 @@ class CustomARWrapper(AutoregressiveWrapper):
             if not Path(save_onnx_path).exists():
                 torch.onnx.export(
                     self.net,
-                    (x, {"context": context, "mask": mask}),
+                    (x, {"mask": mask, "context": context}),
                     save_onnx_path,
                     export_params=True,
-                    opset_version=11,
+                    opset_version=12,
                     verbose=False,
-                    input_names=["input"],
+                    input_names=["x", "mask", "context"],
                     output_names=["output"],
                     do_constant_folding=True,
                     dynamic_axes={
-                        "input": {0: "batch", 2: "height", 3: "width"},
+                        "x": {0: "batch", 1: "encoded_context"},
                         "output": {0: "batch", 1: "output_seq", 2: "token_size"},
                     },
                 )
