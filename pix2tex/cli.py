@@ -29,8 +29,6 @@ from pix2tex.model.checkpoints.get_latest_checkpoint import download_checkpoints
 from pix2tex.models import get_model
 from pix2tex.utils import *
 
-root_dir = Path(__file__).resolve().parent.parent
-
 
 def minmax_size(
     img: Image,
@@ -176,7 +174,11 @@ class LatexOCR:
                     resizer_pred = self.image_resizer(t)
 
                     # Convert image_resizer.pth
-                    save_onnx_path = "/Users/jiahuawang/projects/ConvertLaTeXOCRToONNX/models/image_resizer.onnx"
+                    root_dir = Path(__file__).resolve().parent.parent
+                    save_dir = root_dir / "models"
+                    save_dir.mkdir(parents=True, exist_ok=True)
+                    save_onnx_path = save_dir / "image_resizer.onnx"
+
                     if not Path(save_onnx_path).exists():
                         torch.onnx.export(
                             self.image_resizer,

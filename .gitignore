@@ -1,5 +1,4 @@
 *.onnx
-*.json
 *.pth
 
 # Created by .ignore support plugin (hsz.mobi)
