@@ -588,29 +588,32 @@ class AttentionLayers(nn.Module):
         self.layers = nn.ModuleList([])
 
         self.has_pos_emb = position_infused_attn or rel_pos_bias or rotary_pos_emb
-        self.pia_pos_emb = (
-            FixedPositionalEmbedding(dim) if position_infused_attn else None
-        )
-
+        # self.pia_pos_emb = (
+        #     FixedPositionalEmbedding(dim) if position_infused_attn else None
+        # )
+        self.pia_pos_emb = None
         rotary_emb_dim = max(default(rotary_emb_dim, dim_head // 2), 32)
-        self.rotary_pos_emb = (
-            RotaryEmbedding(rotary_emb_dim) if rotary_pos_emb else None
-        )
+        # self.rotary_pos_emb = (
+        #     RotaryEmbedding(rotary_emb_dim) if rotary_pos_emb else None
+        # )
+        self.rotary_pos_emb = None
 
         assert (
             rel_pos_num_buckets <= rel_pos_max_distance
         ), "number of relative position buckets must be less than the relative position max distance"
-        self.rel_pos = (
-            RelativePositionBias(
-                scale=dim_head**0.5,
-                causal=causal,
-                heads=heads,
-                num_buckets=rel_pos_num_buckets,
-                max_distance=rel_pos_max_distance,
-            )
-            if rel_pos_bias
-            else None
-        )
+
+        # self.rel_pos = (
+        #     RelativePositionBias(
+        #         scale=dim_head**0.5,
+        #         causal=causal,
+        #         heads=heads,
+        #         num_buckets=rel_pos_num_buckets,
+        #         max_distance=rel_pos_max_distance,
+        #     )
+        #     if rel_pos_bias
+        #     else None
+        # )
+        self.rel_pos = None
 
         self.pre_norm = pre_norm
 
@@ -618,12 +621,14 @@ class AttentionLayers(nn.Module):
         self.cross_residual_attn = cross_residual_attn
         self.cross_attend = cross_attend
 
-        norm_class = ScaleNorm if use_scalenorm else nn.LayerNorm
-        norm_class = RMSNorm if use_rmsnorm else norm_class
+        # norm_class = ScaleNorm if use_scalenorm else nn.LayerNorm
+        # norm_class = RMSNorm if use_rmsnorm else norm_class
+        norm_class = nn.LayerNorm
         norm_fn = partial(norm_class, dim)
 
         norm_fn = nn.Identity if use_rezero else norm_fn
-        branch_fn = Rezero if use_rezero else None
+        # branch_fn = Rezero if use_rezero else None
+        branch_fn = None
 
         if cross_attend and not only_cross:
             default_block = ("a", "c", "f")
@@ -632,38 +637,38 @@ class AttentionLayers(nn.Module):
         else:
             default_block = ("a", "f")
 
-        if macaron:
-            default_block = ("f",) + default_block
+        # if macaron:
+        #     default_block = ("f",) + default_block
 
-        if exists(custom_layers):
-            layer_types = custom_layers
-        elif exists(par_ratio):
-            par_depth = depth * len(default_block)
-            assert 1 < par_ratio <= par_depth, "par ratio out of range"
-            default_block = tuple(filter(not_equals("f"), default_block))
-            par_attn = par_depth // par_ratio
-            depth_cut = (
-                par_depth * 2 // 3
-            )  # 2 / 3 attention layer cutoff suggested by PAR paper
-            par_width = (depth_cut + depth_cut // par_attn) // par_attn
-            assert (
-                len(default_block) <= par_width
-            ), "default block is too large for par_ratio"
-            par_block = default_block + ("f",) * (par_width - len(default_block))
-            par_head = par_block * par_attn
-            layer_types = par_head + ("f",) * (par_depth - len(par_head))
-        elif exists(sandwich_coef):
-            assert (
-                sandwich_coef > 0 and sandwich_coef <= depth
-            ), "sandwich coefficient should be less than the depth"
-            layer_types = (
-                ("a",) * sandwich_coef
-                + default_block * (depth - sandwich_coef)
-                + ("f",) * sandwich_coef
-            )
-        else:
-            layer_types = default_block * depth
-
+        # if exists(custom_layers):
+        #     layer_types = custom_layers
+        # elif exists(par_ratio):
+        #     par_depth = depth * len(default_block)
+        #     assert 1 < par_ratio <= par_depth, "par ratio out of range"
+        #     default_block = tuple(filter(not_equals("f"), default_block))
+        #     par_attn = par_depth // par_ratio
+        #     depth_cut = (
+        #         par_depth * 2 // 3
+        #     )  # 2 / 3 attention layer cutoff suggested by PAR paper
+        #     par_width = (depth_cut + depth_cut // par_attn) // par_attn
+        #     assert (
+        #         len(default_block) <= par_width
+        #     ), "default block is too large for par_ratio"
+        #     par_block = default_block + ("f",) * (par_width - len(default_block))
+        #     par_head = par_block * par_attn
+        #     layer_types = par_head + ("f",) * (par_depth - len(par_head))
+        # elif exists(sandwich_coef):
+        #     assert (
+        #         sandwich_coef > 0 and sandwich_coef <= depth
+        #     ), "sandwich coefficient should be less than the depth"
+        #     layer_types = (
+        #         ("a",) * sandwich_coef
+        #         + default_block * (depth - sandwich_coef)
+        #         + ("f",) * sandwich_coef
+        #     )
+        # else:
+        #     layer_types = default_block * depth
+        layer_types = default_block * depth
         self.layer_types = layer_types
         self.num_attn_layers = len(list(filter(equals("a"), layer_types)))
 
@@ -674,18 +679,18 @@ class AttentionLayers(nn.Module):
                 layer = Attention(dim, heads=heads, **attn_kwargs)
             elif layer_type == "f":
                 layer = FeedForward(dim, **ff_kwargs)
-                layer = layer if not macaron else Scale(0.5, layer)
+                # layer = layer if not macaron else Scale(0.5, layer)
             else:
                 raise Exception(f"invalid layer type {layer_type}")
 
             if isinstance(layer, Attention) and exists(branch_fn):
                 layer = branch_fn(layer)
 
-            if gate_residual:
-                residual_fn = GRUGating(dim)
-            else:
-                residual_fn = Residual()
-
+            # if gate_residual:
+            #     residual_fn = GRUGating(dim)
+            # else:
+            #     residual_fn = Residual()
+            residual_fn = Residual()
             self.layers.append(nn.ModuleList([norm_fn(), layer, residual_fn]))
 
     def forward(
@@ -697,28 +702,29 @@ class AttentionLayers(nn.Module):
         mems=None,
         return_hiddens=False,
     ):
-        assert not (
-            self.cross_attend ^ exists(context)
-        ), "context must be passed in if cross_attend is set to True"
+        # assert not (
+        #     self.cross_attend ^ exists(context)
+        # ), "context must be passed in if cross_attend is set to True"
 
         hiddens = []
         intermediates = []
         prev_attn = None
         prev_cross_attn = None
 
-        mems = mems.copy() if exists(mems) else [None] * self.num_attn_layers
+        mems = [None] * self.num_attn_layers
+        # mems = mems.copy() if exists(mems) else [None] * self.num_attn_layers
 
         rotary_pos_emb = None
-        if exists(self.rotary_pos_emb):
-            max_rotary_emb_length = max(
-                list(map(lambda m: (m.shape[1] if exists(m) else 0) + x.shape[1], mems))
-            )
-            rotary_pos_emb = self.rotary_pos_emb(max_rotary_emb_length, x.device)
+        # if exists(self.rotary_pos_emb):
+        #     max_rotary_emb_length = max(
+        #         list(map(lambda m: (m.shape[1] if exists(m) else 0) + x.shape[1], mems))
+        #     )
+        #     rotary_pos_emb = self.rotary_pos_emb(max_rotary_emb_length, x.device)
 
         for ind, (layer_type, (norm, block, residual_fn)) in enumerate(
             zip(self.layer_types, self.layers)
         ):
-            is_last = ind == (len(self.layers) - 1)
+            # is_last = ind == (len(self.layers) - 1)
 
             if layer_type == "a":
                 hiddens.append(x)
@@ -726,8 +732,10 @@ class AttentionLayers(nn.Module):
 
             residual = x
 
-            if self.pre_norm:
-                x = norm(x)
+            x = norm(x)
+
+            # if self.pre_norm:
+            #     x = norm(x)
 
             if layer_type == "a":
                 out, inter = block(
@@ -760,8 +768,8 @@ class AttentionLayers(nn.Module):
             elif layer_type == "c" and self.cross_residual_attn:
                 prev_cross_attn = inter.pre_softmax_attn
 
-            if not self.pre_norm and not is_last:
-                x = norm(x)
+            # if not self.pre_norm and not is_last:
+            #     x = norm(x)
 
         if return_hiddens:
             intermediates = LayerIntermediates(
@@ -872,11 +880,12 @@ class TransformerWrapper(nn.Module):
         self.max_mem_len = max_mem_len
 
         self.token_emb = nn.Embedding(num_tokens, emb_dim)
-        self.pos_emb = (
-            AbsolutePositionalEmbedding(emb_dim, max_seq_len)
-            if (use_pos_emb and not attn_layers.has_pos_emb)
-            else always(0)
-        )
+        # self.pos_emb = (
+        #     AbsolutePositionalEmbedding(emb_dim, max_seq_len)
+        #     if (use_pos_emb and not attn_layers.has_pos_emb)
+        #     else always(0)
+        # )
+        self.pos_emb = AbsolutePositionalEmbedding(emb_dim, max_seq_len)
         self.emb_dropout = nn.Dropout(emb_dropout)
 
         self.project_emb = nn.Linear(emb_dim, dim) if emb_dim != dim else nn.Identity()
@@ -885,22 +894,23 @@ class TransformerWrapper(nn.Module):
 
         self.init_()
 
-        self.to_logits = (
-            nn.Linear(dim, num_tokens)
-            if not tie_embedding
-            else lambda t: t @ self.token_emb.weight.t()
-        )
+        # self.to_logits = (
+        #     nn.Linear(dim, num_tokens)
+        #     if not tie_embedding
+        #     else lambda t: t @ self.token_emb.weight.t()
+        # )
+        self.to_logits = nn.Linear(dim, num_tokens)
 
         # memory tokens (like [cls]) from Memory Transformers paper
         num_memory_tokens = default(num_memory_tokens, 0)
         self.num_memory_tokens = num_memory_tokens
-        if num_memory_tokens > 0:
-            self.memory_tokens = nn.Parameter(torch.randn(num_memory_tokens, dim))
+        # if num_memory_tokens > 0:
+        #     self.memory_tokens = nn.Parameter(torch.randn(num_memory_tokens, dim))
 
-            # let funnel encoder know number of memory tokens, if specified
-            # TODO: think of a cleaner solution
-            if hasattr(attn_layers, "num_memory_tokens"):
-                attn_layers.num_memory_tokens = num_memory_tokens
+        #     # let funnel encoder know number of memory tokens, if specified
+        #     # TODO: think of a cleaner solution
+        #     if hasattr(attn_layers, "num_memory_tokens"):
+        #         attn_layers.num_memory_tokens = num_memory_tokens
 
     def init_(self):
         nn.init.normal_(self.token_emb.weight, std=0.02)
@@ -910,53 +920,56 @@ class TransformerWrapper(nn.Module):
         x,
         mask=None,
         context=None,
-        return_embeddings=False,
-        return_mems=False,
-        return_attn=False,
-        mems=None,
-        # **kwargs,
+        # return_embeddings=False,
+        # return_mems=False,
+        # return_attn=False,
+        # mems=None,
+        # # **kwargs,
     ):
-        b, n, device, num_mem = *x.shape, x.device, self.num_memory_tokens
+        # b, n, device, num_mem = *x.shape, x.device, self.num_memory_tokens
+        mask = mask.bool()
+
         x = self.token_emb(x)
         x = x + self.pos_emb(x)
         x = self.emb_dropout(x)
 
         x = self.project_emb(x)
 
-        if num_mem > 0:
-            mem = repeat(self.memory_tokens, "n d -> b n d", b=b)
-            x = torch.cat((mem, x), dim=1)
+        # if num_mem > 0:
+        #     mem = repeat(self.memory_tokens, "n d -> b n d", b=b)
+        #     x = torch.cat((mem, x), dim=1)
 
-            # auto-handle masking after appending memory tokens
-            if exists(mask):
-                mask = F.pad(mask, (num_mem, 0), value=True)
+        #     # auto-handle masking after appending memory tokens
+        #     if exists(mask):
+        #         mask = F.pad(mask, (num_mem, 0), value=True)
 
         x, intermediates = self.attn_layers(
-            x, mask=mask, mems=mems, return_hiddens=True, context=context
+            x, mask=mask, return_hiddens=True, context=context
         )
         x = self.norm(x)
 
-        mem, x = x[:, :num_mem], x[:, num_mem:]
+        # mem, x = x[:, :num_mem], x[:, num_mem:]
+        # x = x[:, num_mem:]
+        out = self.to_logits(x)
+        # out = self.to_logits(x) if not return_embeddings else x
 
-        out = self.to_logits(x) if not return_embeddings else x
+        # if return_mems:
+        #     hiddens = intermediates.hiddens
+        #     new_mems = (
+        #         list(map(lambda pair: torch.cat(pair, dim=-2), zip(mems, hiddens)))
+        #         if exists(mems)
+        #         else hiddens
+        #     )
+        #     new_mems = list(
+        #         map(lambda t: t[..., -self.max_mem_len :, :].detach(), new_mems)
+        #     )
+        #     return out, new_mems
 
-        if return_mems:
-            hiddens = intermediates.hiddens
-            new_mems = (
-                list(map(lambda pair: torch.cat(pair, dim=-2), zip(mems, hiddens)))
-                if exists(mems)
-                else hiddens
-            )
-            new_mems = list(
-                map(lambda t: t[..., -self.max_mem_len :, :].detach(), new_mems)
-            )
-            return out, new_mems
-
-        if return_attn:
-            attn_maps = list(
-                map(lambda t: t.post_softmax_attn, intermediates.attn_intermediates)
-            )
-            return out, attn_maps
+        # if return_attn:
+        #     attn_maps = list(
+        #         map(lambda t: t.post_softmax_attn, intermediates.attn_intermediates)
+        #     )
+        #     return out, attn_maps
 
         return out
 

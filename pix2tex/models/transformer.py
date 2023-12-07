@@ -35,7 +35,8 @@ class CustomARWrapper(AutoregressiveWrapper):
         out = start_tokens
         mask = kwargs.pop("mask", None)
         if mask is None:
-            mask = torch.full_like(out, True, dtype=torch.bool, device=out.device)
+            # mask = torch.full_like(out, True, dtype=torch.bool, device=out.device)
+            mask = torch.full_like(out, 1, dtype=torch.int32, device=out.device)
 
         for _ in range(seq_len):
             x = out[:, -self.max_seq_len :]
@@ -52,7 +53,7 @@ class CustomARWrapper(AutoregressiveWrapper):
             if not Path(save_onnx_path).exists():
                 torch.onnx.export(
                     self.net,
-                    (x, {"mask": mask, "context": context}),
+                    (x, mask, context),
                     save_onnx_path,
                     export_params=True,
                     opset_version=12,
