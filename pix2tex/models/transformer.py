@@ -56,7 +56,7 @@ class CustomARWrapper(AutoregressiveWrapper):
                     (x, mask, context),
                     save_onnx_path,
                     export_params=True,
-                    opset_version=12,
+                    opset_version=13,
                     verbose=False,
                     input_names=["x", "mask", "context"],
                     output_names=["output"],
@@ -72,13 +72,17 @@ class CustomARWrapper(AutoregressiveWrapper):
 
                 ort_session = onnxruntime.InferenceSession(save_onnx_path)
 
-                input_name = ort_session.get_inputs()[0].name
-                ort_inputs = {input_name: x.cpu().numpy()}
+                input_names = [v.name for v in ort_session.get_inputs()]
+                ort_inputs = {
+                    input_names[0]: x.cpu().numpy(),
+                    input_names[1]: mask.cpu().numpy(),
+                    input_names[2]: context.cpu().numpy(),
+                }
                 ort_outs = ort_session.run(None, ort_inputs)
 
                 # compare ONNX Runtime and PyTorch results
                 np.testing.assert_allclose(
-                    context.cpu().numpy(),
+                    logits.cpu().numpy(),
                     ort_outs[0],
                     rtol=1e-3,
                     atol=1e-5,
