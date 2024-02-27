@@ -1,5 +1,13 @@
 # Convert LaTeX-OCR To ONNX
 
+> [!WARNING]
+> 
+> The current code conversion model cannot be dynamically inferred.
+> 
+> Please refer to [issue #1](https://github.com/SWHL/ConvertLaTeXOCRToONNX/issues/1) for details.
+> 
+> The issue has not been resovled yet.
+
 #### 1. Clone the source code.
 ```bash
 git clone https://github.com/SWHL/ConvertLaTeXOCRToONNX.git
