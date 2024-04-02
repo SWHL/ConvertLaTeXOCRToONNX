@@ -19,8 +19,6 @@ with suppress(ImportError, AttributeError):
 import numpy as np
 import torch
 from munch import Munch
-from timm.models.layers import StdConv2dSame
-from timm.models.resnetv2 import ResNetV2
 from torch._appdirs import user_data_dir
 from transformers import PreTrainedTokenizerFast
 
@@ -28,6 +26,8 @@ from pix2tex.dataset.latex2png import tex2pil
 from pix2tex.model.checkpoints.get_latest_checkpoint import download_checkpoints
 from pix2tex.models import get_model
 from pix2tex.utils import *
+from timm.models.layers import StdConv2dSame
+from timm.models.resnetv2 import ResNetV2
 
 
 def minmax_size(
@@ -116,6 +116,7 @@ class LatexOCR:
                 stem_type="same",
                 conv_layer=StdConv2dSame,
             ).to(self.args.device)
+
             self.image_resizer.load_state_dict(
                 torch.load(
                     os.path.join(
@@ -159,9 +160,11 @@ class LatexOCR:
                         minmax_size(
                             input_image.resize(
                                 (w, h),
-                                Image.Resampling.BILINEAR
-                                if r > 1
-                                else Image.Resampling.LANCZOS,
+                                (
+                                    Image.Resampling.BILINEAR
+                                    if r > 1
+                                    else Image.Resampling.LANCZOS
+                                ),
                             ),
                             self.args.max_dimensions,
                             self.args.min_dimensions,
@@ -185,14 +188,19 @@ class LatexOCR:
                             t,
                             save_onnx_path,
                             export_params=True,
-                            opset_version=11,
+                            opset_version=12,
                             verbose=False,
                             input_names=["input"],
                             output_names=["output"],
                             do_constant_folding=True,
                             dynamic_axes={
-                                "input": {0: "batch", 2: "height", 3: "width"},
-                                "output": {0: "batch", 1: "cls_names"},
+                                "input": {
+                                    0: "batch_size",
+                                    1: "channel",
+                                    2: "height",
+                                    3: "width",
+                                },
+                                "output": {0: "batch_size", 1: "cls_names"},
                             },
                         )
 
@@ -230,10 +238,6 @@ class LatexOCR:
             im.to(self.args.device), temperature=self.args.get("temperature", 0.25)
         )
         pred = post_process(token2str(dec, self.tokenizer)[0])
-        try:
-            clipboard.copy(pred)
-        except:
-            pass
         return pred
 
 

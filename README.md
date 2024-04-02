@@ -1,13 +1,5 @@
 # Convert LaTeX-OCR To ONNX
 
-> [!WARNING]
-> 
-> The current code conversion model cannot be dynamically inferred.
-> 
-> Please refer to [issue #1](https://github.com/SWHL/ConvertLaTeXOCRToONNX/issues/1) for details.
-> 
-> The issue has not been resovled yet.
-
 #### 1. Clone the source code.
 ```bash
 git clone https://github.com/SWHL/ConvertLaTeXOCRToONNX.git
@@ -15,8 +7,9 @@ git clone https://github.com/SWHL/ConvertLaTeXOCRToONNX.git
 
 #### 2. Install env.
 ```bash
-pip install -r requirements.txt
+conda env create -f environment.yml
 ```
+
 #### 3. Run the demo, and the converted model is located in the `models` directory.
 ```bash
 python demo.py
@@ -32,9 +25,9 @@ encoder_path = 'models/encoder.onnx'
 decoder_path = 'models/decoder.onnx'
 tokenizer_json = 'models/tokenizer.json'
 model = LatexOCR(image_resizer_path=image_resizer_path,
-                encoder_path=encoder_path,
-                decoder_path=decoder_path,
-                tokenizer_json=tokenizer_json)
+                 encoder_path=encoder_path,
+                 decoder_path=decoder_path,
+                 tokenizer_json=tokenizer_json)
 
 img_path = "tests/test_files/6.png"
 with open(img_path, "rb") as f:

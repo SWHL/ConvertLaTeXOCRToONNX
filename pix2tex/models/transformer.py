@@ -35,8 +35,8 @@ class CustomARWrapper(AutoregressiveWrapper):
         out = start_tokens
         mask = kwargs.pop("mask", None)
         if mask is None:
-            # mask = torch.full_like(out, True, dtype=torch.bool, device=out.device)
-            mask = torch.full_like(out, 1, dtype=torch.int32, device=out.device)
+            mask = torch.full_like(out, True, dtype=torch.bool, device=out.device)
+            # mask = torch.full_like(out, 1, dtype=torch.int32, device=out.device)
 
         for _ in range(seq_len):
             x = out[:, -self.max_seq_len :]
@@ -63,6 +63,8 @@ class CustomARWrapper(AutoregressiveWrapper):
                     do_constant_folding=True,
                     dynamic_axes={
                         "x": {0: "batch", 1: "encoded_context"},
+                        "mask": {0: "mask_0", 1: "mask_1"},
+                        "context": {0: "context_0", 1: "context_1", 2: "context_2"},
                         "output": {0: "batch", 1: "output_seq", 2: "token_size"},
                     },
                 )

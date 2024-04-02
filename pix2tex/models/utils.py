@@ -55,10 +55,16 @@ class Model(nn.Module):
                 output_names=["output"],
                 do_constant_folding=True,
                 dynamic_axes={
-                    "input": {0: "batch", 2: "height", 3: "width"},
-                    "output": {0: "batch", 1: "context1", 2: "context2"},
+                    "input": {0: "batch_size", 1: "channel", 2: "height", 3: "width"},
+                    "output": {0: "batch_size", 1: "context1", 2: "context2"},
                 },
             )
+
+            # export_opt = torch.onnx.ExportOptions(dynamic_shapes=True)
+            # encoder_output = torch.onnx.dynamo_export(
+            #     self.encoder, x, export_options=export_opt
+            # )
+            # encoder_output.save(save_onnx_path)
 
             import numpy as np
             import onnxruntime
