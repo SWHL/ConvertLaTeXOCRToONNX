@@ -5,10 +5,21 @@
 git clone https://github.com/SWHL/ConvertLaTeXOCRToONNX.git
 ```
 
-### 2. Install env by Anaconda.
+### 2. Install env.
+#### Anaconda
 ```bash
 conda env create -f environment.yml
 ```
+
+#### Pip
+```bash
+$ conda create -n cvt_latex python=3.10.13
+
+$ conda activate cvt_latex
+
+$ pip install -r requirements.txt
+```
+
 
 ### 3. Run the convert.py, and the converted model is located in the `models` directory.
 ```bash

@@ -7,7 +7,6 @@ from contextlib import suppress
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import pandas.io.clipboard as clipboard
 import yaml
 from PIL import Image, ImageGrab
 
