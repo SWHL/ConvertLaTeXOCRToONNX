@@ -1,21 +1,32 @@
 # Convert LaTeX-OCR To ONNX
 
-#### 1. Clone the source code.
+### 1. Clone the source code.
 ```bash
 git clone https://github.com/SWHL/ConvertLaTeXOCRToONNX.git
 ```
 
-#### 2. Install env.
+### 2. Install env by Anaconda.
 ```bash
 conda env create -f environment.yml
 ```
 
-#### 3. Run the demo, and the converted model is located in the `models` directory.
+### 3. Run the convert.py, and the converted model is located in the `models` directory.
 ```bash
-python demo.py
+$ python convert.py
+
+# /Users/xxx/miniconda3/envs/convert_latex_ocr/lib/python3.10/site-packages/torch/onnx/symbolic_helper.py:1513: UserWarning: ONNX export mode is set to TrainingMode.EVAL, but operator 'batch_norm' is set to train=True. Exporting with train=True.
+#   warnings.warn(
+# Exported model has been tested with ONNXRuntime, and the result looks good!
+# ONNX Model has been saved /Users/xxx/projects/_self/ConvertLaTeXOCRToONNX/models/image_resizer.onnx
+# Exported model has been tested with ONNXRuntime, and the result looks good!
+# ONNX Model has been saved /Users/xxx/projects/_self/ConvertLaTeXOCRToONNX/models/encoder.onnx
+# Exported model has been tested with ONNXRuntime, and the result looks good!
+# ONNX Model has been saved /Users/xxx/projects/_self/ConvertLaTeXOCRToONNX/models/decoder.onnx
+# \exp\left[\int d^{4}x g\phi\bar{\psi}\psi\right]=\sum_{n=0}^{\infty}\frac{g^{n}}{n!}\left(\int d^{4}x\phi\bar{\psi}\psi\right)^{n}.
 ```
 
-#### 4. Used in [RapidLaTeXOCR](https://github.com/RapidAI/RapidLaTeXOCR).
+
+### 4. Used in [RapidLaTeXOCR](https://github.com/RapidAI/RapidLaTeXOCR).
 
 ```python
 from rapid_latex_ocr import LatexOCR
